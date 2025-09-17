@@ -14,7 +14,6 @@ A RESTful Todo API built with Django and Django REST Framework, connected to Pos
 - **Python**: 3.12
 
 
-```
 
 ## API Endpoints
 
@@ -31,8 +30,12 @@ GET /api/todos/
 {
     "results": [
         {
+            "id": 1,
             "title": "Example todo",
-            "description": "Todo description"
+            "description": "Todo description",
+            "completed": false,
+            "created_at": "2025-09-17T10:30:00Z",
+            "updated_at": "2025-09-17T10:30:00Z"
         }
     ]
 }
@@ -67,6 +70,17 @@ Content-Type: application/json
 #### 4. Get Specific Todo
 ```http
 GET /api/todos/{id}/
+```
+**Response:**
+```json
+{
+    "id": 1,
+    "title": "Specific todo",
+    "description": "Todo description",
+    "completed": false,
+    "created_at": "2025-09-17T10:30:00Z",
+    "updated_at": "2025-09-17T10:30:00Z"
+}
 ```
 
 #### 5. Update Todo (Full Update)
