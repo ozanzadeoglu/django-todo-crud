@@ -48,9 +48,4 @@ wheels/
 .installed.cfg
 *.egg
 
-# Media files (if you add file uploads later)
-media/
-
-# Static files (collected for production)
-staticfiles/
 
