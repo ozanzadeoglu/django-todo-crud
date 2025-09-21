@@ -1,32 +1,21 @@
 from django.shortcuts import get_object_or_404
-from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Todo
-from .serializers import TodoSerializer, TodoMinimalSerializer
-from django.core.paginator import Paginator
+from .serializers import TodoSerializer
+from rest_framework.request import Request
+from rest_framework.views import APIView
 
-# Create your views here.
-@api_view(["GET", "POST"])
-def todo_list_create(request):
-    if request.method == "GET":
-        
-        page = request.GET.get("page")
-        page_size = request.GET.get("page_size")
-        
-        if not page and not page_size:
-            todos = Todo.objects.all()
-            serializer = TodoSerializer(todos, many = True)
-            return Response({
-                "results" : serializer.data
-            })
-        
-        page = int(page or 1)
-        page_size = int(page_size or 2)
+class TodoListApi(APIView):
+    
+
+    def get(self, request: Request):
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 2))
         
         offset = (page - 1) * page_size
         
-        todos = Todo.objects.all()[offset:offset + page_size]
+        todos = Todo.objects.all()[offset: offset + page_size]
         total_count = Todo.objects.count()
         
         serializer = TodoSerializer(todos, many = True)
@@ -37,40 +26,34 @@ def todo_list_create(request):
             "total_pages": (total_count + page_size - 1) // page_size,
             "results": serializer.data
             })
-    
-    elif request.method == "POST":
+        
+    def post(self, request: Request):
         serializer = TodoSerializer(data = request.data)
         
-        if(serializer.is_valid()):
+        if(serializer.is_valid(raise_exception = True)):
             serializer.save()
-            return Response(serializer.data, status= status.HTTP_201_CREATED)
-        
-        return Response(serializer.errors, status= status.HTTP_400_BAD_REQUEST)
-    
+            return Response(serializer.data, status = status.HTTP_201_CREATED)
 
-@api_view(["GET", "PUT", "DELETE", "PATCH"])
-def todo_detail(request, pk):
-    todo = get_object_or_404(Todo, pk = pk)
+
+class TodoDetailApi(APIView):
+    serializer_class = TodoSerializer
     
-    if request.method == "GET":
-        serializer = TodoSerializer(todo)
-        return Response(serializer.data)
+    def get(self, request: Request, pk):
+        todo = get_object_or_404(Todo, pk = pk)
+        serializer = self.serializer_class(todo)
+        return Response(serializer.data, status = status.HTTP_200_OK)
     
-    elif request.method == "PUT":
-        serializer = TodoSerializer(todo, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
+    
+    def put(self, request: Request, pk):
+        todo = get_object_or_404(Todo, pk = pk)
+        serializer = self.serializer_class(todo, data = request.data)
+        if serializer.is_valid(raise_exception= True):
             return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    elif request.method == "DELETE":
-        todo.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-    
-    elif request.method == "PATCH":
-        serializer = TodoSerializer(todo, data = request.data, partial = True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+        
+    def delete(self, request: Request, pk):
+        deleted_count, _ = Todo.objects.filter(pk = pk).delete()
+        if deleted_count == 0:
+            return Response(status= status.HTTP_404_NOT_FOUND)
+        
+        return Response(status=status.HTTP_204_NO_CONTENT)    
+        
