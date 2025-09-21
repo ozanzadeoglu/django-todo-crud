@@ -48,6 +48,7 @@ class TodoDetailApi(APIView):
         todo = get_object_or_404(Todo, pk = pk)
         serializer = self.serializer_class(todo, data = request.data)
         if serializer.is_valid(raise_exception= True):
+            serializer.save()
             return Response(serializer.data)
         
     def delete(self, request: Request, pk):
