@@ -28,8 +28,6 @@ class LimitOffsetPagination(_LimitOffsetPagination):
                 ("limit", self.limit),
                 ("offset", self.offset),
                 ("count", self.count),
-                ("next", self.get_next_link()),
-                ("previous", self.get_previous_link()),
                 ("results", data),
             ]
         )
@@ -45,8 +43,6 @@ class LimitOffsetPagination(_LimitOffsetPagination):
                     ("limit", self.limit),
                     ("offset", self.offset),
                     ("count", self.count),
-                    ("next", self.get_next_link()),
-                    ("previous", self.get_previous_link()),
                     ("results", data),
                 ]
             )
