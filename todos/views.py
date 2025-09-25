@@ -6,10 +6,12 @@ from common.pagination import get_paginated_response, LimitOffsetPagination
 from todos.selectors import todo_list, todo_get
 from todos.services import todo_create, todo_delete, todo_update
 from .models import Todo
-from .serializers import TodoSerializer
 from rest_framework.request import Request
 from rest_framework.views import APIView
 from rest_framework import serializers
+from .tasks import todo_list_cache_task
+from django.core.cache import cache
+from .utils import generate_todo_cache_key
 
 
 class TodoListApi(APIView):
@@ -41,16 +43,41 @@ class TodoListApi(APIView):
     def get(self, request: Request):
         filter_serializer = self.FilterSerializer(data=request.query_params)
         filter_serializer.is_valid(raise_exception=True)
-
         todo_qs = todo_list(filters=filter_serializer.validated_data)
 
-        return get_paginated_response(
+        limit = int(
+            request.query_params.get("limit", LimitOffsetPagination.default_limit)
+        )
+        offset = int(request.query_params.get("offset", 0))
+
+        next_offset = limit + offset
+
+        cache_key = generate_todo_cache_key(
+            filter_serializer.validated_data, limit, offset
+        )
+
+        cached_response = cache.get(cache_key)
+
+        if cached_response is not None:
+            todo_list_cache_task.delay(
+            filters = filter_serializer.validated_data,
+            limit = limit, 
+            offset = next_offset
+            )
+            return Response(cached_response)
+        response = get_paginated_response(
             pagination_class=LimitOffsetPagination,
             serializer_class=self.OutputSerializer,
             queryset=todo_qs,
             request=request,
             view=self,
         )
+        todo_list_cache_task.delay(
+            filters = filter_serializer.validated_data,
+            limit = limit, 
+            offset = next_offset
+        )
+        return response
 
     def post(self, request: Request):
         serializer = self.InputSerializer(data=request.data)
